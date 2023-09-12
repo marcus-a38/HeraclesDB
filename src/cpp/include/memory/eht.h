@@ -32,17 +32,17 @@
 
     Basic structure:
                                                                 
-       Directories (hash, key k)       Buckets (value v)       
+       Directories (hashes)     Buckets (key, value)       
 
-           |==========|            |=======================|    
-           |    01     ============> Page memory address 1      
-           |==========|            |=======================|    
-           |    10     ============> Page memory address 2      
-           |==========|            |=======================|    
-           |    00     ============> Page memory address 3      
-           |==========|            |=======================|    
-           |    11     ============> Page memory address N      
-           |==========|            |=======================|    
+           |==========|            |==========|    
+           |    01     ============>   Data      
+           |==========|            |==========|    
+           |    10     ============>   Data      
+           |==========|            |==========|    
+           |    00     ============>   Data      
+           |==========|            |==========|    
+           |    11     ============>   Data     
+           |==========|            |==========|    
  
     To access data, you search the table with a page_id_t (Page ID)
 
