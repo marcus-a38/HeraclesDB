@@ -34,7 +34,8 @@
 #define  LOG_BUFFER_SIZE        65536     // Journal size of 64 kb
 
 /* Limits */
-#define  EHT_BUCKET_SIZE        50        // Number of key-value pairs in a given EHT bucket
+#define  EHT_MAX_BUCKET_DEPTH   50        // Maximum depth of a single EHT bucket 
+#define  EHT_MAX_BUCKET_SIZE    50        // Number of key-value pairs in a given EHT bucket
 #define  BPTREE_MAX_HEIGHT      20        // Maximum depth/height of a B+ tree
 #define  DB_MAX_PAGES           0         // Maximum number of pages in a database
 
@@ -47,8 +48,8 @@
 
 Define later:
 
-#define  TABLE_MAX_PAGES        x   
-#define  TABLE_MAX_ENTRIES      x  
+#define  TABLE_MAX_PAGES        x
+#define  TABLE_MAX_ENTRIES      x
 #define  TABLE_MAX_COLS         x
 #define  COLUMNS_PER_PAGE       x
 

@@ -19,93 +19,87 @@
 #ifndef HERACLES_EXT_HASH_H
 #define HERACLES_EXT_HASH_H
 
-#include <map>
-#include <memory>
+#include "config.h"
+
+// Go through these includes later
+#include <string>
+#include <list>
+#include <mutex>
 #include <vector>
-#include "src/cpp/include/general/config.h"
+#include <map>
 
-/* 
+/*
 
-    Extendible Hash Tables (EHTs) are a data structure used in database 
-    systems. They use dynamic hashing to store directory-bucket pairs 
+    Extendible Hash Tables (EHTs) are a data structure used in database
+    systems. They use dynamic hashing to store directory-bucket pairs
     for efficient page access.
 
-    Basic structure:
-                                                                
-       Directories (hash, key k)       Buckets (value v)       
+       Directories (hash)       Buckets (key k, value v)
 
-           |==========|            |=======================|    
-           |    01     ============> Page memory address 1      
-           |==========|            |=======================|    
-           |    10     ============> Page memory address 2      
-           |==========|            |=======================|    
-           |    00     ============> Page memory address 3      
-           |==========|            |=======================|    
-           |    11     ============> Page memory address N      
-           |==========|            |=======================|    
- 
-    To access data, you search the table with a page_id_t (Page ID)
+           |==========|            |============|
+           |    01     ============> Key->Value |
+           |==========|            |============|
+           |    10     ============> Key->Value |
+           |==========|            |============|
+           |    00     ============> Key->Value |
+           |==========|            |============|
+           |    11     ============> Key->Value |
+           |==========|            |============|
+
+    To access Pages, you search the table with a page_id_t (Page ID).
 
 */
 
+/* Status codes */
 enum class EHTStatus {
-    GENERAL_SUCCESS,        // Catch-all for other general successes
-    GENERAL_FAILURE,        // Catch-all for other general errors
-    NEW_BKT_SUCCESS,        // Creating bucket succeeded
-    NEW_BKT_FAILURE,        // Creating bucket failed
-    OVERFLOW_BKT_SUCCESS,   // Bucket overflow routine succeeded
-    OVERFLOW_BKT_FAILURE,   // Bucket overflow routine failed
-    INDEX_OUT_OF_BOUNDS,    // Invalid bucket index
-    MEMORY_EXCEPTION        // Any memory-related error
+    GENERAL_SUCCESS,
+    GENERAL_FAILURE,
+    INDEX_OUT_OF_BOUNDS,
+    NONEXISTENT_KEY
 };
 
 /* Key-value template class for EHT */
-template <typename k, typename v> 
+template <typename k, typename v>
 class ExtendibleHashTable {
 
     struct Bucket {
+        Bucket() = default;
+        Bucket(bkt_id_t bktId, size_t bktDepth) : id(bktId), depth(bktDepth) {}
 
-        bool isOverflowed = false;  // Bucket overflow
+        bool overflowed = false;    // Bucket overflow
         std::map<k, v> items;       // Key-value pairs
         bkt_id_t id = 0;            // Identifier
-        uint32_t depth = 0;         // Local depth
-
-        Bucket() = default;
-        Bucket(bkt_id_t bid, int bdepth): id(bid), depth(bdepth) {}
-
+        size_t depth = 0;           // Local depth
     };
 
-    private:
+public:
 
-        const size_t bktSize;       // Max (n) number of elements in a bucket
-        uint32_t bktCount;          // Number of active buckets
-        uint32_t depth;             // Global depth
-        size_t numPairs;            // Key-value pair count in the table
-        std::vector<std::shared_ptr<Bucket>> directory; // Smart ptr directory->bucket
+    ExtendibleHashTable(size_t size) :
+        nBkt(1), nPairs(0), depth(0) {
+        directory.emplace_back(new Bucket(0, 0));
+    }
 
-        std::unique_ptr<Bucket> split(std::shared_ptr<Bucket>&);
-        size_t hashKey(const k &key);
-        size_t bktIndex(const k &key);
-    
-    public:
+    size_t getGlobalDepth() const;
+    size_t getLocalDepth(bkt_id_t bucket_id) const;
+    size_t getNumBuckets() const;
 
-        int getGlobalDepth() const;
-        int getLocalDepth(bkt_id_t bucket_id) const;
-        int getNumBuckets() const;
-        
-        bool search(const k &key, v &val);
-        bool remove(const k &key);
-        void insert(const k &key, const v &val);
-        size_t size() const { return numPairs; }
+    EHTStatus grab(const k& key, v& val);
+    EHTStatus del(const k& key);
+    EHTStatus put(const k& key, const v& val);
+    size_t size() const { return nPairs; }
 
-        ExtendibleHashTable(size_t size):
-            bktSize(size), bktCount(1), depth(0), numPairs(0) {
-                directory.emplace_back(new Bucket(0, 0));
-        }
+private:
+
+    std::mutex latch;           // Mutex for concurrency
+    size_t nBkt;              // Number of active buckets
+    size_t depth;               // Global depth
+    size_t nPairs;              // Key-value pair count in the table
+    std::vector<std::shared_ptr<Bucket>> directory; // Smart ptr directory->bucket
+
+    std::unique_ptr<Bucket> split(std::shared_ptr<Bucket>&);
+    size_t hashKey(const k& key);
+    bkt_id_t bktIndex(const k& key);
+
 };
-
-/* Using a more palatable name */
-template<typename key, typename value>
-using extendible_hash = ExtendibleHashTable<key, value>;
 
 #endif
