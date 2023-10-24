@@ -20,6 +20,10 @@
 #define HERACLES_CONFIG_H
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <memory>
+#include <vector>
+#include "os_ppd.h"
 
 /* ID */
 #define  INVALID_ID             -1        // Invalid ID for page, lsn, trx, and bkt 
@@ -27,7 +31,10 @@
 
 /* Page */
 #define  PAGE_SIZE              4096      // Common page size, can be changed to any base 2 
-#define  LRU_CACHE_LIMIT        2000      // Max number of pages at a given time in LRU cache
+#define  LFU_CACHE_LIMIT        750       // Max number of unprivileged frames in cache
+#define  LRU_CACHE_LIMIT        1250      // Max number of privileged frames in cache
+#define  LAZY_DECOMPRESSION     0         // Decompress data when loading into memory, or when reading?
+#define  LFRU_CACHE_LIMIT       LFU_CACHE_LIMIT + LRU_CACHE_LIMIT
 
 /* WAL */
 #define  LOGGING_ENABLED        1         // Default true, in rare instances may need to be false
@@ -44,20 +51,26 @@
 #define  SQL_MAX_TABLE_JOIN     64        // Max number of tables in a join
 #define  ETREE_MAX_HEIGHT       1000      // Max height for SQL expression tree
 
-/*
+/* System */
+#define  DISK_LIMIT             30        // Measured as 2^N bytes
 
-Define later:
+#if defined(_M_AMD64) || defined(__x86_64__) || defined(__arm64__)
+#   define CRC_POLYNOMIAL       0xEDB88320          // Standard 32-bit polynomial
+#   define SIZE_64              1 
+    typedef int64_t bit_ofst;   // Bit offset
+#else
+#   define CRC_POLYNOMIAL       0x42F0E1EBA9EA3693  // Standard 64-bit polynomial
+#   define SIZE_64              0
+    typedef int32_t bit_ofst;
+#endif
 
-#define  TABLE_MAX_PAGES        x
-#define  TABLE_MAX_ENTRIES      x
-#define  TABLE_MAX_COLS         x
-#define  COLUMNS_PER_PAGE       x
+template <typename T>
+using bitset = std::vector<T>; 
 
-*/
-
-typedef int32_t page_id_t;  // Page id type def
-typedef int32_t trx_id_t;   // Transaction id type def
-typedef int32_t lsn_t;      // Log sequence number type def
-typedef int32_t bkt_id_t;   // Hash bucket id type def
+typedef int64_t page_id_t;  // Page id type def
+typedef int32_t txn_id_t;   // Transaction id type def
+typedef int32_t log_id_t;   // Log sequence number (LSN)
+typedef int16_t bkt_id_t;   // Hash bucket id
+typedef int32_t col_id_t;   // Column id 
 
 #endif
